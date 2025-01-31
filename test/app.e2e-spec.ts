@@ -19,10 +19,14 @@ describe('App', () => {
         whitelist: true
       })
     )
-    prisma = app.get(PrismaService);
-    pactum.request.setBaseUrl('http://localhost:3333');
+
     await app.init();
     await app.listen(3333);
+
+    prisma = app.get(PrismaService);
+    await prisma.cleanDb();
+
+    pactum.request.setBaseUrl('http://localhost:3333');
   });
 
   afterAll(() => {
@@ -61,10 +65,11 @@ describe('App', () => {
     });
 
     describe('Signin', () => {
-      it('should signup', () => {
+      it('should signin', () => {
         return pactum.spec().post('/auth/signin')
         .withBody(dto)
         .expectStatus(201)
+        .stores('userAt', 'access_token');
       });
       it('should throw an error when email is empty', () => {
         return pactum.spec().post('/auth/signin')
@@ -89,7 +94,13 @@ describe('App', () => {
 
   describe('User', () => {
     describe('Get current user', () => {
-
+      it('should get current user', () => {
+        return pactum.spec().get('/users/me')
+        .withHeaders({
+          Authorization: 'Bearer $S{userAt}'
+        })
+        .expectStatus(200)
+      });
     });
 
     describe('Edit user', () => {
